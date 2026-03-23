@@ -1,61 +1,69 @@
 import pandas as pd
+import streamlit as st
 import re
 import random
-import streamlit as st
+
 
 # -----------------------------
-# Dataset Loader
+# Load datasets
 # -----------------------------
 
 def load_asdiv_dataset():
 
-    # small built-in sample dataset for now
-    data = [
-        {
-            "grade": "1",
-            "problem": "Tom has 3 apples. His friend gives him 2 more apples. How many apples does Tom have now?",
-            "answer": "5",
-            "operation": "addition"
-        },
-        {
-            "grade": "2",
-            "problem": "Sarah has 10 candies. She eats 4 candies. How many candies are left?",
-            "answer": "6",
-            "operation": "subtraction"
-        },
-        {
-            "grade": "3",
-            "problem": "There are 4 bags with 3 marbles in each bag. How many marbles are there in total?",
-            "answer": "12",
-            "operation": "multiplication"
-        }
-    ]
+    df = pd.read_csv("asdiv_full.csv")
 
-    df = pd.DataFrame(data)
+    df = df.rename(columns={
+        "question": "problem",
+        "answer": "answer"
+    })
 
-    return df
+    df["grade"] = "1-2"
+    df["dataset"] = "ASDiv"
+    df["operation"] = "basic"
+
+    return df[["problem", "answer", "grade", "dataset", "operation"]]
+
+
+def load_gsm8k_dataset():
+
+    df = pd.read_csv("gsm8k_test.csv")
+
+    df = df.rename(columns={
+        "question": "problem",
+        "answer": "answer"
+    })
+
+    df["grade"] = "3-8"
+    df["dataset"] = "GSM8K"
+    df["operation"] = "multi-step"
+
+    return df[["problem", "answer", "grade", "dataset", "operation"]]
 
 
 # -----------------------------
-# Adaptation Generator
+# Adaptation generator
 # -----------------------------
 
 def generate_adaptive_versions(problem, answer, operation):
 
-    adhd_problem = f"Let's solve this step by step! {problem}"
-    ell_problem = f"Read carefully. {problem}"
-    id_problem = f"{problem} Think about each number slowly."
+    adhd_problem = f"Focus time! Let's solve this together.\n\n{problem}"
 
-    teacher_solution = f"The correct answer is {answer}. The operation used is {operation}."
+    ell_problem = f"Read slowly.\n\n{problem}\n\nThink about the numbers."
 
-    adhd_explanation = f"Focus on the numbers and follow the steps to find {answer}."
-    ell_explanation = f"We use the math operation {operation} to solve the problem."
-    id_explanation = f"Start with the numbers. Use {operation}. The answer is {answer}."
+    id_problem = f"Step 1: Read the problem.\n\n{problem}\n\nStep 2: Use the numbers to solve it."
+
+    teacher_solution = f"The answer is {answer}. The math operation used is {operation}."
+
+    adhd_explanation = f"Look at the numbers carefully. Follow the steps to find {answer}."
+
+    ell_explanation = f"We solve the problem using {operation}. The answer is {answer}."
+
+    id_explanation = f"Start with the numbers. Use {operation}. The answer becomes {answer}."
 
     illustration_plan = {
         "type": "counters",
-        "a": random.randint(2,5),
-        "b": random.randint(1,4)
+        "a": random.randint(2,6),
+        "b": random.randint(1,5)
     }
 
     return {
@@ -71,7 +79,7 @@ def generate_adaptive_versions(problem, answer, operation):
 
 
 # -----------------------------
-# Illustration Renderer
+# Illustration generator
 # -----------------------------
 
 def render_illustration(plan):
@@ -81,12 +89,12 @@ def render_illustration(plan):
         a = plan["a"]
         b = plan["b"]
 
-        st.write("Visual representation:")
+        st.write("### Visual Illustration")
 
-        st.write("🔵 " * a)
-        st.write("🟢 " * b)
+        st.write("🍎 " * a)
+        st.write("🍏 " * b)
 
-        st.write(f"Total objects: {a + b}")
+        st.write(f"Total objects = {a+b}")
 
 
 # -----------------------------
@@ -100,6 +108,6 @@ def evaluate_adaptation(original, adapted):
 
     return {
         "numbers_preserved": extract_numbers(original) == extract_numbers(adapted),
-        "original_word_count": len(original.split()),
-        "adapted_word_count": len(adapted.split())
+        "original_words": len(original.split()),
+        "adapted_words": len(adapted.split())
     }
